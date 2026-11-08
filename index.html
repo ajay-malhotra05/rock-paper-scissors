@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rock Paper Scissors</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        claude: {
+                            bg: '#FBF9F5',
+                            card: '#FFFFFF',
+                            text: '#222222',
+                            muted: '#666562',
+                            border: '#E8E5DF',
+                            hover: '#F2EFE9',
+                            accent: '#D97757', // Warm terracotta accent like Claude
+                            accentLight: '#FDF2EE',
+                            accentHover: '#C66547',
+                            rock: '#4A5568',
+                            paper: '#319795',
+                            scissors: '#D69E2E'
+                        }
+                    },
+                    fontFamily: {
+                        serif: ['Georgia', 'Cambria', 'serif'],
+                        sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            background-color: #FBF9F5;
+            color: #222222;
+        }
+        
+        .choice-btn {
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .choice-btn:hover {
+            transform: translateY(-4px);
+        }
+
+        .choice-btn:active {
+            transform: translateY(-1px);
+        }
+
+        .pulse-subtle {
+            animation: pulse-border 2s infinite;
+        }
+
+        @keyframes pulse-border {
+            0%, 100% { border-color: rgba(217, 119, 87, 0.3); }
+            50% { border-color: rgba(217, 119, 87, 0.8); }
+        }
+
+        @keyframes popIn {
+            0% { transform: scale(0.8); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        .animate-pop {
+            animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #E8E5DF;
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #D1CDC4;
+        }
+    </style>
+</head>
+<body class="font-sans antialiased min-h-screen flex flex-col justify-between text-claude-text selection:bg-claude-accentLight selection:text-claude-accent">
+
+    <!-- Header Section -->
+    <header class="w-full max-w-4xl mx-auto px-6 pt-8 pb-4 flex items-center justify-between border-b border-claude-border/60">
+        <div class="flex items-center gap-3">
+            <div class="w-9 h-9 rounded-xl bg-claude-accent/10 flex items-center justify-center text-claude-accent font-serif font-bold text-xl border border-claude-accent/20">
+                ✦
+            </div>
+            <div>
+                <h1 class="font-serif text-xl tracking-tight font-medium text-claude-text">Rock Paper Scissors</h1>
+                <p class="text-xs text-claude-muted font-sans">A Gift for My Well-Wisher</p>
+            </div>
+        </div>
+
+        <!-- Mode & Stats Summary -->
+        <div class="flex items-center gap-3">
+            <button id="reset-btn" onclick="resetGame()" class="px-3 py-1.5 text-xs font-medium text-claude-muted hover:text-claude-text hover:bg-claude-hover rounded-lg border border-claude-border transition-all duration-200 flex items-center gap-1.5">
+                <i class="fa-solid fa-rotate-left text-[10px]"></i>
+                Reset Match
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Game Container -->
+    <main class="w-full max-w-4xl mx-auto px-6 py-6 flex-1 flex flex-col justify-center">
+
+        <!-- Scoreboard Component -->
+        <div class="grid grid-cols-3 gap-4 mb-8 bg-claude-card p-4 rounded-2xl border border-claude-border shadow-sm">
+            <div class="text-center p-3 rounded-xl bg-claude-bg/50 border border-claude-border/40">
+                <span class="text-xs font-medium uppercase tracking-wider text-claude-muted block mb-1">You</span>
+                <span id="player-score" class="text-3xl font-serif font-semibold text-claude-text">0</span>
+            </div>
+            <div class="text-center p-3 rounded-xl bg-claude-bg/50 border border-claude-border/40 flex flex-col justify-center items-center">
+                <span class="text-xs font-medium uppercase tracking-wider text-claude-muted block mb-1">Draws</span>
+                <span id="draw-score" class="text-2xl font-serif font-medium text-claude-muted">0</span>
+            </div>
+            <div class="text-center p-3 rounded-xl bg-claude-bg/50 border border-claude-border/40">
+                <span class="text-xs font-medium uppercase tracking-wider text-claude-muted block mb-1">AI Counterpart</span>
+                <span id="ai-score" class="text-3xl font-serif font-semibold text-claude-text">0</span>
+            </div>
+        </div>
+
+        <!-- Arena Display -->
+        <div class="relative bg-claude-card rounded-2xl border border-claude-border shadow-sm p-8 mb-8 min-h-[260px] flex flex-col items-center justify-center overflow-hidden">
+            
+            <!-- Result Banner (Hidden initially) -->
+            <div id="result-container" class="transition-opacity duration-300 mb-6 text-center">
+                <span id="result-badge" class="inline-block px-4 py-1.5 rounded-full text-xs font-medium uppercase tracking-widest bg-claude-hover text-claude-muted mb-2">
+                    SELECT YOUR MOVE
+                </span>
+                <h2 id="result-message" class="text-2xl md:text-3xl font-serif font-medium text-claude-text min-h-[36px]">
+                    Choose an action below to begin
+                </h2>
+            </div>
+
+            <!-- VS Layout -->
+            <div class="w-full max-w-md flex items-center justify-between gap-4">
+                <!-- Player Side -->
+                <div class="flex flex-col items-center gap-3 w-1/3">
+                    <div id="player-card" class="w-24 h-24 md:w-28 md:h-28 rounded-2xl border-2 border-claude-border bg-claude-card overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-lg">
+                        <img src="girl-anime.png" alt="Girl anime player character" class="w-full h-full object-cover">
+                    </div>
+                    <span class="text-xs font-medium text-claude-muted">Your Selection</span>
+                </div>
+
+                <!-- Divider / VS Badge -->
+                <div class="flex flex-col items-center">
+                    <span class="w-8 h-8 rounded-full bg-claude-hover border border-claude-border flex items-center justify-center text-xs font-serif font-semibold text-claude-muted">
+                        VS
+                    </span>
+                </div>
+
+                <!-- AI Side -->
+                <div class="flex flex-col items-center gap-3 w-1/3">
+                    <div id="ai-card" class="w-24 h-24 md:w-28 md:h-28 rounded-2xl border-2 border-claude-border bg-claude-card overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-lg">
+                        <img src="boy-anime.png" alt="Boy anime AI character" class="w-full h-full object-cover">
+                    </div>
+                    <span class="text-xs font-medium text-claude-muted">AI Choice</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Move Selection Area -->
+        <div class="space-y-3">
+            <div class="flex justify-between items-center px-1">
+                <label class="text-xs font-medium text-claude-muted uppercase tracking-wider">Make your choice</label>
+                <span id="streak-counter" class="text-xs font-medium text-claude-accent hidden">Streak: 🔥 <span id="streak-num">0</span></span>
+            </div>
+
+            <div class="grid grid-cols-3 gap-3 md:gap-4">
+                <!-- Rock Button -->
+                <button onclick="playRound('rock')" class="choice-btn group bg-claude-card hover:bg-claude-hover border border-claude-border rounded-xl p-4 md:p-6 flex flex-col items-center gap-3 text-center transition-all shadow-sm focus:outline-none focus:ring-2 focus:ring-claude-accent/40">
+                    <div class="w-12 h-12 md:w-14 md:h-14 rounded-xl bg-slate-100 text-slate-700 flex items-center justify-center text-2xl md:text-3xl group-hover:scale-110 transition-transform">
+                        🪨
+                    </div>
+                    <div>
+                        <div class="font-serif font-medium text-claude-text text-base">Rock</div>
+                        <div class="text-[11px] text-claude-muted hidden sm:block mt-0.5">Beats Scissors</div>
+                    </div>
+                </button>
+
+                <!-- Paper Button -->
+                <button onclick="playRound('paper')" class="choice-btn group bg-claude-card hover:bg-claude-hover border border-claude-border rounded-xl p-4 md:p-6 flex flex-col items-center gap-3 text-center transition-all shadow-sm focus:outline-none focus:ring-2 focus:ring-claude-accent/40">
+                    <div class="w-12 h-12 md:w-14 md:h-14 rounded-xl bg-teal-50 text-teal-700 flex items-center justify-center text-2xl md:text-3xl group-hover:scale-110 transition-transform">
+                        📄
+                    </div>
+                    <div>
+                        <div class="font-serif font-medium text-claude-text text-base">Paper</div>
+                        <div class="text-[11px] text-claude-muted hidden sm:block mt-0.5">Beats Rock</div>
+                    </div>
+                </button>
+
+                <!-- Scissors Button -->
+                <button onclick="playRound('scissors')" class="choice-btn group bg-claude-card hover:bg-claude-hover border border-claude-border rounded-xl p-4 md:p-6 flex flex-col items-center gap-3 text-center transition-all shadow-sm focus:outline-none focus:ring-2 focus:ring-claude-accent/40">
+                    <div class="w-12 h-12 md:w-14 md:h-14 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center text-2xl md:text-3xl group-hover:scale-110 transition-transform">
+                        ✂️
+                    </div>
+                    <div>
+                        <div class="font-serif font-medium text-claude-text text-base">Scissors</div>
+                        <div class="text-[11px] text-claude-muted hidden sm:block mt-0.5">Beats Paper</div>
+                    </div>
+                </button>
+            </div>
+        </div>
+
+        <!-- History Log Section -->
+        <div class="mt-8">
+            <div class="flex items-center justify-between mb-3 px-1">
+                <h3 class="text-xs font-medium text-claude-muted uppercase tracking-wider">Match History</h3>
+                <button id="clear-history" onclick="clearHistory()" class="text-xs text-claude-muted hover:text-claude-accent transition-colors hidden">Clear</button>
+            </div>
+            <div id="history-list" class="space-y-2 max-h-36 overflow-y-auto pr-1">
+                <div id="empty-history" class="text-xs text-claude-muted italic text-center py-4 bg-claude-card/50 rounded-xl border border-dashed border-claude-border">
+                    No rounds played yet in this session.
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="w-full max-w-4xl mx-auto px-6 py-4 text-center border-t border-claude-border/60 text-xs text-claude-muted">
+        Designed with a thoughtful, minimalist interface. Built with HTML, CSS & Vanilla JS.
+    </footer>
+
+    <!-- Game Logic Script -->
+    <script>
+        // Game State Variables
+        let playerScore = 0;
+        let aiScore = 0;
+        let drawScore = 0;
+        let streak = 0;
+        let isPlaying = false;
+        let history = [];
+
+        // Choice Data mapping
+        const choices = {
+            rock: { emoji: '🪨', name: 'Rock', beats: 'scissors', color: 'bg-slate-50 border-slate-200' },
+            paper: { emoji: '📄', name: 'Paper', beats: 'rock', color: 'bg-teal-50 border-teal-200' },
+            scissors: { emoji: '✂️', name: 'Scissors', beats: 'paper', color: 'bg-amber-50 border-amber-200' }
+        };
+
+        // Core Game Function
+        function playRound(playerChoice) {
+            if (isPlaying) return;
+            isPlaying = true;
+
+            const resultContainer = document.getElementById('result-container');
+            const resultBadge = document.getElementById('result-badge');
+            const resultMessage = document.getElementById('result-message');
+            const playerCard = document.getElementById('player-card');
+            const aiCard = document.getElementById('ai-card');
+
+            // Reset cards to thinking state
+            playerCard.className = 'w-24 h-24 md:w-28 md:h-28 rounded-2xl border-2 border-claude-accent/40 bg-claude-accentLight flex items-center justify-center text-4xl animate-pop';
+            playerCard.innerHTML = choices[playerChoice].emoji;
+
+            aiCard.className = 'w-24 h-24 md:w-28 md:h-28 rounded-2xl border-2 border-dashed border-claude-accent/40 bg-claude-bg flex items-center justify-center text-3xl text-claude-accent animate-pulse';
+            aiCard.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+
+            resultContainer.classList.add('opacity-0');
+
+            // Short synthetic delay for AI "thinking" feel
+            setTimeout(() => {
+                const aiChoice = getAIChoice();
+                
+                // Display AI Choice
+                aiCard.className = 'w-24 h-24 md:w-28 md:h-28 rounded-2xl border-2 border-claude-border bg-claude-card flex items-center justify-center text-4xl animate-pop';
+                aiCard.innerHTML = choices[aiChoice].emoji;
+
+                // Determine Winner
+                const outcome = getOutcome(playerChoice, aiChoice);
+                updateGameState(outcome, playerChoice, aiChoice);
+
+                // Reveal Result
+                resultContainer.classList.remove('opacity-0');
+                isPlaying = false;
+            }, 450);
+        }
+
+        // Random Choice Generator for AI
+        function getAIChoice() {
+            const keys = Object.keys(choices);
+            return keys[Math.floor(Math.random() * keys.length)];
+        }
+
+        // Outcome Logic
+        function getOutcome(player, ai) {
+            if (player === ai) return 'draw';
+            return choices[player].beats === ai ? 'win' : 'lose';
+        }
+
+        // State & UI Update Handler
+        function updateGameState(outcome, player, ai) {
+            const resultBadge = document.getElementById('result-badge');
+            const resultMessage = document.getElementById('result-message');
+
+            if (outcome === 'win') {
+                playerScore++;
+                streak++;
+                document.getElementById('player-score').innerText = playerScore;
+                
+                resultBadge.className = 'inline-block px-4 py-1.5 rounded-full text-xs font-semibold uppercase tracking-widest bg-emerald-100 text-emerald-800 mb-2';
+                resultBadge.innerText = 'Victory';
+                resultMessage.innerText = `${choices[player].name} beats ${choices[ai].name.toLowerCase()}.`;
+            } else if (outcome === 'lose') {
+                aiScore++;
+                streak = 0;
+                document.getElementById('ai-score').innerText = aiScore;
+
+                resultBadge.className = 'inline-block px-4 py-1.5 rounded-full text-xs font-semibold uppercase tracking-widest bg-rose-100 text-rose-800 mb-2';
+                resultBadge.innerText = 'Defeat';
+                resultMessage.innerText = `${choices[ai].name} beats ${choices[player].name.toLowerCase()}.`;
+            } else {
+                drawScore++;
+                document.getElementById('draw-score').innerText = drawScore;
+
+                resultBadge.className = 'inline-block px-4 py-1.5 rounded-full text-xs font-semibold uppercase tracking-widest bg-claude-hover text-claude-muted mb-2';
+                resultBadge.innerText = 'Draw';
+                resultMessage.innerText = `Both selected ${choices[player].name.toLowerCase()}.`;
+            }
+
+            // Update Streak Display
+            const streakCounter = document.getElementById('streak-counter');
+            if (streak > 1) {
+                document.getElementById('streak-num').innerText = streak;
+                streakCounter.classList.remove('hidden');
+            } else {
+                streakCounter.classList.add('hidden');
+            }
+
+            // Log Round History
+            addHistoryLog(outcome, player, ai);
+        }
+
+        // History Logging
+        function addHistoryLog(outcome, player, ai) {
+            const emptyHistory = document.getElementById('empty-history');
+            const historyList = document.getElementById('history-list');
+            const clearBtn = document.getElementById('clear-history');
+
+            if (emptyHistory) emptyHistory.remove();
+            clearBtn.classList.remove('hidden');
+
+            const item = document.createElement('div');
+            item.className = 'flex items-center justify-between p-3 bg-claude-card border border-claude-border/70 rounded-xl text-xs animate-pop';
+
+            let outcomeBadge = '';
+            if (outcome === 'win') {
+                outcomeBadge = '<span class="text-emerald-700 font-semibold bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">You Won</span>';
+            } else if (outcome === 'lose') {
+                outcomeBadge = '<span class="text-rose-700 font-semibold bg-rose-50 px-2 py-0.5 rounded border border-rose-200">AI Won</span>';
+            } else {
+                outcomeBadge = '<span class="text-claude-muted font-medium bg-claude-hover px-2 py-0.5 rounded border border-claude-border">Draw</span>';
+            }
+
+            item.innerHTML = `
+                <div class="flex items-center gap-2">
+                    ${outcomeBadge}
+                    <span class="text-claude-text font-medium">${choices[player].emoji} vs ${choices[ai].emoji}</span>
+                </div>
+                <span class="text-claude-muted">${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>
+            `;
+
+            historyList.insertBefore(item, historyList.firstChild);
+        }
+
+        // Clear History
+        function clearHistory() {
+            const historyList = document.getElementById('history-list');
+            const clearBtn = document.getElementById('clear-history');
+            
+            historyList.innerHTML = `
+                <div id="empty-history" class="text-xs text-claude-muted italic text-center py-4 bg-claude-card/50 rounded-xl border border-dashed border-claude-border">
+                    No rounds played yet in this session.
+                </div>
+            `;
+            clearBtn.classList.add('hidden');
+        }
+
+        // Reset Entire Match
+        function resetGame() {
+            playerScore = 0;
+            aiScore = 0;
+            drawScore = 0;
+            streak = 0;
+
+            document.getElementById('player-score').innerText = '0';
+            document.getElementById('ai-score').innerText = '0';
+            document.getElementById('draw-score').innerText = '0';
+            document.getElementById('streak-counter').classList.add('hidden');
+
+            const resultContainer = document.getElementById('result-container');
+            const resultBadge = document.getElementById('result-badge');
+            const resultMessage = document.getElementById('result-message');
+            const playerCard = document.getElementById('player-card');
+            const aiCard = document.getElementById('ai-card');
+
+            resultContainer.classList.remove('opacity-0');
+            resultBadge.className = 'inline-block px-4 py-1.5 rounded-full text-xs font-medium uppercase tracking-widest bg-claude-hover text-claude-muted mb-2';
+            resultBadge.innerText = 'SELECT YOUR MOVE';
+            resultMessage.innerText = 'Choose an action below to begin';
+
+            playerCard.className = 'w-24 h-24 md:w-28 md:h-28 rounded-2xl border-2 border-claude-border bg-claude-card overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-lg';
+            playerCard.innerHTML = '<img src="girl-anime.png" alt="Girl anime player character" class="w-full h-full object-cover">';
+
+            aiCard.className = 'w-24 h-24 md:w-28 md:h-28 rounded-2xl border-2 border-claude-border bg-claude-card overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-lg';
+            aiCard.innerHTML = '<img src="boy-anime.png" alt="Boy anime AI character" class="w-full h-full object-cover">';
+
+            clearHistory();
+        }
+    </script>
+</body>
+</html>
